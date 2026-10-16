@@ -226,3 +226,22 @@ final class RecentMenuTests: XCTestCase {
         XCTAssertEqual(RecentMenu.title("hello"), "hello")
     }
 }
+
+final class TranscriptHistoryTempFileTests: XCTestCase {
+    func testLeftoverTempFileIsRemovedAtStartAndOnClear() throws {
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("parrot-history-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let file = dir.appendingPathComponent("history.json")
+        let temp = dir.appendingPathComponent(".history.json.tmp")
+
+        try Data("crashed mid-save".utf8).write(to: temp)
+        let history = TranscriptHistory(file: file, enabled: true, log: { _ in })
+        XCTAssertNil(Paths.fileType(temp.path))
+
+        try Data("crashed again".utf8).write(to: temp)
+        history.clear()
+        XCTAssertNil(Paths.fileType(temp.path))
+    }
+}

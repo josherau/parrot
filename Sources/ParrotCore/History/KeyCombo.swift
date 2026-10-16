@@ -6,6 +6,10 @@ import Carbon.HIToolbox
 ///
 /// At least one of Command, Option or Control is required, so the shortcut
 /// can't swallow plain typing.
+///
+/// The key is a position on the US (ANSI) layout, as `RegisterEventHotKey`
+/// takes it: on Dvorak or AZERTY, ⌥⌘V is the key where V sits on a US
+/// keyboard.
 struct KeyCombo: Equatable, Sendable {
     struct Modifiers: OptionSet, Hashable, Sendable {
         let rawValue: Int
@@ -23,11 +27,12 @@ struct KeyCombo: Equatable, Sendable {
     /// Finder it shadows "Move Item Here".
     static let defaultPasteLast = KeyCombo(modifiers: [.option, .command], key: "v")
 
-    /// What the Settings window offers; `settings.json` takes any combo.
+    /// What the Settings window offers; `settings.json` takes any combo. None
+    /// uses Control, a common push-to-talk key: holding it to press the
+    /// shortcut would start a dictation.
     static let pasteLastChoices: [KeyCombo] = [
         defaultPasteLast,
         KeyCombo(modifiers: [.shift, .option, .command], key: "v"),
-        KeyCombo(modifiers: [.control, .option, .command], key: "v"),
         KeyCombo(modifiers: [.option, .command], key: "p"),
     ]
 

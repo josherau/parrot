@@ -56,12 +56,11 @@ struct HistorySection: View {
                 Button(cleared ? "Cleared" : "Clear History") {
                     onClear()
                     cleared = true
+                    // Back to a button, for transcripts recorded since.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { cleared = false }
                 }
                 .buttonStyle(.pill)
                 .disabled(cleared)
-            }
-            .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { _ in
-                cleared = false
             }
         }
     }

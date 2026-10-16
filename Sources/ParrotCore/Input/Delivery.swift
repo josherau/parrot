@@ -1,3 +1,4 @@
+import Carbon.HIToolbox
 import Foundation
 
 /// A transcript that was not inserted at the cursor, with the line the
@@ -55,13 +56,16 @@ final class TextDelivery {
     }
 
     /// Paste Last: pastes `text` at the cursor through the clipboard, spaced
-    /// like a dictation. Refuses a password field, as a dictation does.
+    /// like a dictation. Refuses a password field, as a dictation does, and
+    /// also while any app holds secure keyboard entry (Terminal's Secure
+    /// Keyboard Entry, a sudo or password-manager prompt), whose fields
+    /// Accessibility often doesn't mark: the shortcut makes this one key.
     /// Returns false if refused.
     @discardableResult
     func pasteAgain(_ text: String) -> Bool {
         guard !text.isEmpty else { return false }
         let now = FocusSnapshot.capture()
-        guard !now.isSecure else {
+        guard !now.isSecure, !IsSecureEventInputEnabled() else {
             Log.info("paste last: secure field focused; not pasted")
             return false
         }

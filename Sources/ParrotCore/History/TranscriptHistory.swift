@@ -35,6 +35,8 @@ final class TranscriptHistory {
         self.isEnabled = enabled
         self.limit = limit
         self.log = log
+        // A temporary file a crash left mid-save holds transcripts too.
+        removeTemp()
         if enabled {
             entries = read()
         } else {
@@ -107,10 +109,11 @@ final class TranscriptHistory {
 
     /// Writes a 0600 temporary file beside the history and renames it over
     /// it, so the text is never readable by others, not even for a moment,
-    /// and a crash leaves either the old file or the new one.
+    /// and a crash leaves either the old file or the new one. No fsync: this
+    /// runs just before each paste, and a lost write costs one entry.
     private func save() {
         let dir = file.deletingLastPathComponent()
-        let temp = dir.appendingPathComponent(".\(file.lastPathComponent).\(getpid()).tmp")
+        let temp = self.temp
         do {
             try Paths.prepareDirectory(dir)
             if Paths.fileType(temp.path) != nil { try FileManager.default.removeItem(at: temp) }
@@ -119,7 +122,6 @@ final class TranscriptHistory {
             let handle = try FileHandle(forWritingTo: temp)
             defer { try? handle.close() }
             try handle.write(contentsOf: data)
-            try handle.synchronize()
             // rename(2) replaces a symlink at `file` rather than following it.
             guard rename(temp.path, file.path) == 0 else {
                 throw POSIXError(POSIXErrorCode(rawValue: errno) ?? .EIO)
@@ -130,7 +132,17 @@ final class TranscriptHistory {
         }
     }
 
+    /// One fixed name, so a leftover from a crash is found and removed.
+    private var temp: URL {
+        file.deletingLastPathComponent().appendingPathComponent(".\(file.lastPathComponent).tmp")
+    }
+
+    private func removeTemp() {
+        if Paths.fileType(temp.path) != nil { try? FileManager.default.removeItem(at: temp) }
+    }
+
     private func remove() {
+        removeTemp()
         guard Paths.fileType(file.path) != nil else { return }
         do {
             try FileManager.default.removeItem(at: file)

@@ -26,5 +26,5 @@ Models went to `~/Documents/huggingface`, the swift-transformers default. That t
 
 ## 4. When to Revisit
 
-- If Parrot adds transcript history as a feature, it needs an explicit opt-in, a stated location, and its own ADR.
+- If Parrot adds transcript history as a feature, it needs an explicit opt-in, a stated location, and its own ADR. See ADR-006, which records where this fork departs from the opt-in.
 - If the app becomes sandboxed, the locations move into the container.

@@ -15,6 +15,11 @@ final class RecentMenu: NSObject, NSMenuDelegate {
     var pasteLastShortcut: () -> String? = { nil }
     var onCopy: ((String) -> Void)?
     var onClear: (() -> Void)?
+    /// The newest entry and the count when the menu was built. A dictation
+    /// finishing while the menu is open shifts every index, so a click then
+    /// copies nothing rather than the neighbour.
+    private var builtNewest: String?
+    private var builtCount = 0
 
     override init() {
         super.init()
@@ -25,6 +30,8 @@ final class RecentMenu: NSObject, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         let transcripts = transcripts()
+        builtNewest = transcripts.first
+        builtCount = transcripts.count
         guard !transcripts.isEmpty else {
             let empty = NSMenuItem(title: "No recent transcripts", action: nil, keyEquivalent: "")
             empty.isEnabled = false
@@ -57,7 +64,12 @@ final class RecentMenu: NSObject, NSMenuDelegate {
     @objc private func copyClicked(_ sender: NSMenuItem) {
         // By index into the history as it is now; the menu holds no text.
         let transcripts = transcripts()
-        guard transcripts.indices.contains(sender.tag) else { return }
+        guard transcripts.first == builtNewest, transcripts.count == builtCount,
+              transcripts.indices.contains(sender.tag)
+        else {
+            NSSound.beep()
+            return
+        }
         onCopy?(transcripts[sender.tag])
     }
 
