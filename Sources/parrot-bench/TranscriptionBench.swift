@@ -86,7 +86,7 @@ enum TranscriptionBench {
             print("unknown model: \(options.model ?? "")")
             throw SilentExit(1)
         }
-        guard WhisperKitTranscriber.isCached(model) else {
+        guard Transcribers.isCached(model) else {
             print("\(model.id) is not downloaded; run: parrot models download \(model.id)")
             throw SilentExit(1)
         }
@@ -137,7 +137,7 @@ enum TranscriptionBench {
         let promptLabel = context.prompt.map { "\($0.split(separator: " ").count) words" }
             ?? (context.examples.isEmpty ? "none" : "the example for the detected language")
 
-        let transcriber = WhisperKitTranscriber(model: model, tuning: tuning)
+        let transcriber = Transcribers.make(model, tuning: tuning)
         try blocking { try await transcriber.warmUp() }
 
         let languageLabel = model.isMultilingual ? (language ?? "automatic") : "\(language ?? "-") (model)"

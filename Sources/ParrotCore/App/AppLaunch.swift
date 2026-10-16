@@ -12,11 +12,21 @@ public enum AppBundle {
     /// so it never changes (ADR-005).
     static let identifier = "com.humanitas.parrot"
 
-    /// The bundle's URL when the main bundle is Parrot.app, else nil (a bare
-    /// `swift build` binary).
+    /// "Parrot Dev.app" (`PARROT_VARIANT=dev scripts/build-app.sh`): a branch
+    /// build installed beside Parrot.app, with its own TCC grants, that never
+    /// updates itself.
+    static let devIdentifier = "com.humanitas.parrot.dev"
+
+    /// True in Parrot Dev.app.
+    static var isDev: Bool { Bundle.main.bundleIdentifier == devIdentifier }
+
+    /// The bundle's URL when the main bundle is Parrot.app or Parrot Dev.app,
+    /// else nil (a bare `swift build` binary).
     static var current: URL? {
         let url = Bundle.main.bundleURL
-        guard url.pathExtension == "app", Bundle.main.bundleIdentifier == identifier else { return nil }
+        guard url.pathExtension == "app",
+              [identifier, devIdentifier].contains(Bundle.main.bundleIdentifier ?? "")
+        else { return nil }
         return url
     }
 

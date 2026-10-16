@@ -13,6 +13,10 @@ let package = Package(
         // In-app updates (#50). A binary framework: scripts/build-app.sh
         // embeds it in Parrot.app/Contents/Frameworks and signs it.
         .package(url: "https://github.com/sparkle-project/Sparkle.git", from: "2.6.0"),
+        // Parakeet TDT through CoreML. Pre-1.0 and its ASR API moves between
+        // minors, so patches only; 0.15.5 is what the MIT forks that added
+        // Parakeet (FernandoGomes83/parrot, andredezzy/parrot) shipped with.
+        .package(url: "https://github.com/FluidInference/FluidAudio.git", .upToNextMinor(from: "0.15.5")),
     ],
     targets: [
         // All behaviour: capture, hotkey, transcription, pipeline, settings, UI.
@@ -21,6 +25,7 @@ let package = Package(
             dependencies: [
                 .product(name: "WhisperKit", package: "argmax-oss-swift"),
                 .product(name: "Sparkle", package: "Sparkle"),
+                .product(name: "FluidAudio", package: "FluidAudio"),
             ]
         ),
         // Thin entry point: ArgumentParser commands that call into ParrotCore.

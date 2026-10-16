@@ -60,6 +60,13 @@ package struct WhisperTuning: Equatable, @unchecked Sendable {
         var options = DecodingOptions(task: .transcribe, language: language, detectLanguage: false)
         options.promptTokens = promptTokens
         options.withoutTimestamps = withoutTimestamps && Self.fitsOneWindow(audioSeconds)
+        // Past one 30 s window WhisperKit needs a chunking strategy; with none
+        // it takes the branch its own source calls short enough for a single
+        // window and can drop speech from the middle. `.vad` cuts on silence
+        // with the chunker WhisperKit ships. Unconditional: WhisperKit only
+        // consults it past one window. From andredezzy/parrot 9fa3268 (MIT),
+        // "whisperkit: chunk long audio instead of pretending it is short".
+        options.chunkingStrategy = .vad
         return options
     }
 

@@ -22,6 +22,9 @@
 #   PARROT_TIMESTAMP=none  skip the secure timestamp (local builds, offline);
 #                          notarization needs it, so releases leave this unset
 #   PARROT_BUILD_DIR       output directory (default: build)
+#   PARROT_VARIANT=dev     build "Parrot Dev.app", bundle ID com.humanitas.parrot.dev:
+#                          installs beside Parrot.app with its own permission
+#                          grants, and never updates itself through Sparkle
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -29,7 +32,13 @@ cd "$(dirname "$0")/.."
 VERSION="${1:-$(git describe --tags --abbrev=0 2>/dev/null || echo 0.0.0)}"
 VERSION="${VERSION#v}"
 OUT="${PARROT_BUILD_DIR:-build}"
-APP="$OUT/Parrot.app"
+NAME="Parrot"
+BUNDLE_ID="com.humanitas.parrot"
+if [ "${PARROT_VARIANT:-}" = "dev" ]; then
+    NAME="Parrot Dev"
+    BUNDLE_ID="com.humanitas.parrot.dev"
+fi
+APP="$OUT/$NAME.app"
 
 IDENTITY="${PARROT_SIGN_IDENTITY:-$(security find-identity -v -p codesigning \
     | sed -n 's/.*"\(Developer ID Application: [^"]*\)".*/\1/p' | head -1)}"
@@ -51,6 +60,9 @@ ditto "$(dirname "$BIN")/Sparkle.framework" "$APP/Contents/Frameworks/Sparkle.fr
 cp packaging/Info.plist "$APP/Contents/Info.plist"
 plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Info.plist"
 plutil -replace CFBundleVersion -string "$VERSION" "$APP/Contents/Info.plist"
+plutil -replace CFBundleIdentifier -string "$BUNDLE_ID" "$APP/Contents/Info.plist"
+plutil -replace CFBundleName -string "$NAME" "$APP/Contents/Info.plist"
+plutil -replace CFBundleDisplayName -string "$NAME" "$APP/Contents/Info.plist"
 printf 'APPL????' > "$APP/Contents/PkgInfo"
 
 # SwiftPM's resource bundles (swift-transformers' fallback tokenizer

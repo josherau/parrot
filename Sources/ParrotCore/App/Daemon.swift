@@ -59,7 +59,7 @@ public enum Daemon {
             MicrophoneAccess.requestIfUndetermined()
         }
 
-        let transcriber = WhisperKitTranscriber(model: chosenModel)
+        let transcriber = Transcribers.make(chosenModel)
 
         try MainActor.assumeIsolated {
             try runLoop(model: chosenModel, transcriber: transcriber, settings: settings, options: options)
@@ -83,7 +83,7 @@ public enum Daemon {
     @MainActor
     private static func runLoop(
         model: TranscriptionModel,
-        transcriber: WhisperKitTranscriber,
+        transcriber: any LoadableTranscriber,
         settings: SettingsStore,
         options: DaemonOptions
     ) throws {
@@ -97,7 +97,9 @@ public enum Daemon {
             capture.onLevel = { level in overlay.pushLevel(level) }
         }
         // Before the menu, which shows "Check for Updates…" only when running.
-        if AppLaunch.isApp { Updater.start() }
+        // Parrot Dev.app never updates: an update would replace the branch
+        // build with the release.
+        if AppLaunch.isApp, !AppBundle.isDev { Updater.start() }
         let menuBar = MenuBarController(modelID: model.id)
         // Recent transcripts and Paste Last: recorded by delivery before
         // each paste, so a paste that lands nowhere can be recovered.

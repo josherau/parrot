@@ -35,7 +35,7 @@ enum LiveBench {
             print("unknown model: \(options.model ?? "")")
             throw SilentExit(1)
         }
-        guard WhisperKitTranscriber.isCached(model) else {
+        guard Transcribers.isCached(model) else {
             print("\(model.id) is not downloaded; run: parrot models download \(model.id)")
             throw SilentExit(1)
         }
@@ -56,7 +56,7 @@ enum LiveBench {
         }
         let fixedContext = context
 
-        let transcriber = WhisperKitTranscriber(model: model)
+        let transcriber = Transcribers.make(model)
         try TranscriptionBench.blocking { try await transcriber.warmUp() }
         let firstAudio = try AudioProcessor.loadAudioAsFloatArray(fromPath: files[0].audio.path)
         _ = try TranscriptionBench.blocking { try await transcriber.transcribe(firstAudio, context: fixedContext) }
@@ -163,7 +163,7 @@ enum LiveBench {
     /// then times the release.
     static func replay(
         _ audio: [Float],
-        transcriber: WhisperKitTranscriber,
+        transcriber: any LoadableTranscriber,
         context: TranscriptionContext,
         options: LiveBenchOptions
     ) async throws -> Replay {

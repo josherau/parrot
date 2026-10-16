@@ -86,7 +86,7 @@ struct TranscriptionSection: View {
                 )) {
                     // A model not on the Mac yet downloads when chosen; the
                     // arrow says so without words.
-                    if WhisperKitTranscriber.isCached(model) {
+                    if Transcribers.isCached(model) {
                         Text(Self.shortName(model))
                     } else {
                         Label(Self.shortName(model), systemImage: "arrow.down.circle")

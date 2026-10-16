@@ -2,8 +2,8 @@ import CoreML
 import Foundation
 import WhisperKit
 
-package actor WhisperKitTranscriber: Transcriber {
-    let modelID: String
+package actor WhisperKitTranscriber: LoadableTranscriber {
+    package let modelID: String
     private let model: TranscriptionModel
     let tuning: WhisperTuning
     private var pipeline: WhisperKit?
@@ -25,7 +25,7 @@ package actor WhisperKitTranscriber: Transcriber {
     /// Call once at startup so the first hotkey press isn't blocked on model
     /// download/load. `progress` gets the download's fraction done, 0 to 1,
     /// when there is anything to download.
-    package func warmUp(progress: (@Sendable (Double) -> Void)? = nil) async throws {
+    package func warmUp(progress: (@Sendable (Double) -> Void)?) async throws {
         if pipeline != nil || retired { return }
         guard let whisperKitID = model.whisperKitID else {
             throw TranscriberError.missingEngineID

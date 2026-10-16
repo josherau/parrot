@@ -23,7 +23,7 @@ public enum ModelCommands {
             throw SilentExit(1)
         }
         WhisperKitTranscriber.migrateLegacyModels()
-        let t = WhisperKitTranscriber(model: m)
+        let t = Transcribers.make(m)
 
         let sem = DispatchSemaphore(value: 0)
         var capturedError: Error?

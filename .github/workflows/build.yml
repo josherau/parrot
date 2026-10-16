@@ -71,6 +71,25 @@ jobs:
           path: ${{ steps.package.outputs.name }}.zip
           retention-days: 14
 
+      # The same build as "Parrot Dev.app" (com.humanitas.parrot.dev), to run
+      # beside an installed Parrot.app with its own permissions.
+      - name: build Parrot Dev.app
+        env:
+          PARROT_SIGN_IDENTITY: "-"
+          PARROT_TIMESTAMP: none
+          PARROT_VARIANT: dev
+          PARROT_BUILD_DIR: build-dev
+        run: |
+          set -eu
+          scripts/build-app.sh
+          ditto -c -k --keepParent "build-dev/Parrot Dev.app" "${{ steps.package.outputs.name }}-dev.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.name }}-dev
+          path: ${{ steps.package.outputs.name }}-dev.zip
+          retention-days: 14
+
       # parrot-bench, to time a branch on a Mac with the models: unzip and
       # run ./parrot-bench beside its Sparkle.framework.
       - name: build parrot-bench

@@ -34,6 +34,17 @@ package enum ModelRegistry {
             languages: ["en"],
             recommended: false
         ),
+        // Ported from the MIT forks FernandoGomes83/parrot and andredezzy/parrot.
+        TranscriptionModel(
+            id: "parakeet-tdt-0.6b-v3",
+            displayName: "Parakeet TDT 0.6B v3",
+            engine: .parakeet,
+            whisperKitID: nil,
+            // Preprocessor, int8 encoder, decoder, joint and vocabulary.
+            sizeMB: 483,
+            languages: ["multi"],
+            recommended: false
+        ),
         TranscriptionModel(
             id: "whisper-small",
             displayName: "Whisper Small",

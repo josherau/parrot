@@ -7,7 +7,7 @@ import Foundation
 /// rest: Whisper conditions on `prompt`; engines with a vocabulary input (for
 /// example contextual strings in Apple Speech) take `vocabulary`. Every engine
 /// gets the dictionary's replacement pass afterwards regardless.
-protocol Transcriber: Sendable {
+package protocol Transcriber: Sendable {
     var modelID: String { get }
     func transcribe(_ audio: [Float], context: TranscriptionContext) async throws -> Transcript
 }
