@@ -95,6 +95,14 @@ else
     TIMESTAMP="--timestamp=none"
 fi
 
+# The hardened runtime, which notarization requires, enforces library
+# validation: the app loads only frameworks signed by its own team. An
+# ad-hoc signature has no team, so an ad-hoc app with the runtime refuses its
+# own Sparkle.framework and exits at launch ("different Team IDs"). Ad-hoc
+# builds are never notarized, so they go without it.
+RUNTIME="--options runtime"
+[ "$SIGN_AS" = "-" ] && RUNTIME=""
+
 # Inside-out: each nested bundle before the one that contains it, as in
 # Sparkle's documentation. Downloader.xpc keeps its entitlements.
 SPARKLE="$APP/Contents/Frameworks/Sparkle.framework/Versions/B"
@@ -104,10 +112,10 @@ for nested in \
     "$SPARKLE/Autoupdate" \
     "$SPARKLE/Updater.app" \
     "$APP/Contents/Frameworks/Sparkle.framework"; do
-    codesign --force --options runtime $TIMESTAMP --preserve-metadata=entitlements \
+    codesign --force $RUNTIME $TIMESTAMP --preserve-metadata=entitlements \
         --sign "$SIGN_AS" "$nested"
 done
-codesign --force --options runtime $TIMESTAMP \
+codesign --force $RUNTIME $TIMESTAMP \
     --entitlements packaging/Parrot.entitlements \
     --sign "$SIGN_AS" "$APP"
 
