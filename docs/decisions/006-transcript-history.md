@@ -20,7 +20,7 @@ Paste mode borrows the clipboard for 250 ms and restores it. If no text field ta
 ## 3. Design Implications
 
 - ADR-004's "no transcript text at rest" now has one exception, this file, which the user can turn off and clear.
-- **On by default in this fork.** ADR-004 asks for an explicit opt-in. The fork's owner asked for history on with a switch to turn it off. Upstream, the default should be off, or onboarding should ask.
+- **On by default in this fork, by the owner's decision.** ADR-004 asks for an explicit opt-in. Asked to choose, the fork's owner kept it on (2026-10-16: "Keep history on by default in my fork; I want the Recent list."), with the switch in Settings ▸ History to turn it off. Upstream, the default should be off, or onboarding should ask.
 - Uninstall leaves Application Support, and so the history; Clear History or turning it off removes it.
 
 ## 4. When to Revisit
