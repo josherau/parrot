@@ -20,11 +20,11 @@ package actor ParakeetTranscriber: LoadableTranscriber {
         self.modelID = model.id
     }
 
-    /// Where the weights live. FluidAudio takes the repo folder's name from
-    /// the last path component, so it must be the repo's own folder name, or
-    /// the downloader and the loader disagree about where the files are.
+    /// Where the weights live. FluidAudio keeps them in a folder named for
+    /// the model's repository beside the path it is given (0.15.8:
+    /// `parakeet-tdt-0.6b-v3`), so this is that folder.
     static var store: URL {
-        Paths.appSupport.appendingPathComponent("fluidaudio/parakeet-tdt-0.6b-v3-coreml", isDirectory: true)
+        Paths.appSupport.appendingPathComponent("fluidaudio/parakeet-tdt-0.6b-v3", isDirectory: true)
     }
 
     static var isCached: Bool { AsrModels.modelsExist(at: store, version: .v3) }

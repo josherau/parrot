@@ -20,8 +20,8 @@ final class EngineTests: XCTestCase {
 
     func testParakeetWeightsLiveInApplicationSupport() {
         XCTAssertTrue(ParakeetTranscriber.store.path.hasPrefix(Paths.appSupport.path))
-        // FluidAudio takes the repo folder from the last path component.
-        XCTAssertEqual(ParakeetTranscriber.store.lastPathComponent, "parakeet-tdt-0.6b-v3-coreml")
+        // The folder FluidAudio downloads the repository into.
+        XCTAssertEqual(ParakeetTranscriber.store.lastPathComponent, "parakeet-tdt-0.6b-v3")
     }
 
     /// Past one window WhisperKit drops speech without a chunking strategy
