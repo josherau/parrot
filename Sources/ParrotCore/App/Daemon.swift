@@ -99,7 +99,21 @@ public enum Daemon {
         // Before the menu, which shows "Check for Updates…" only when running.
         if AppLaunch.isApp { Updater.start() }
         let menuBar = MenuBarController(modelID: model.id)
-        let settingsWindow = SettingsWindow(store: settings)
+        // Recent transcripts and Paste Last: recorded by delivery before
+        // each paste, so a paste that lands nowhere can be recovered.
+        let history = TranscriptHistory(enabled: settings.current.history.enabled)
+        let delivery = TextDelivery(mode: options.injectMode, record: { history.record($0) })
+        let pasteLast = PasteLast(history: history, delivery: delivery)
+        pasteLast.apply(settings.current.history.pasteLastHotkey)
+        menuBar.recent.transcripts = { history.entries }
+        menuBar.recent.pasteLastShortcut = { pasteLast.combo?.displayName }
+        menuBar.recent.onCopy = { delivery.copy($0) }
+        let clearHistory = {
+            history.clear()
+            Log.info("history: cleared")
+        }
+        menuBar.recent.onClear = clearHistory
+        let settingsWindow = SettingsWindow(store: settings, onClearHistory: clearHistory)
         menuBar.onOpenSettings = { settingsWindow.show() }
         menuBar.setHotkey(monitor.key)
         // Parrot.app sets up the hotkey, languages and permissions, and
@@ -150,7 +164,7 @@ public enum Daemon {
             processors: [DictionaryProcessor(store: dictionary)],
             observers: observers,
             dumpWav: options.dumpWav,
-            delivery: TextDelivery(mode: options.injectMode),
+            delivery: delivery,
             context: dictionaryContext
         )
         switcher.controller = controller
@@ -171,6 +185,13 @@ public enum Daemon {
             }
             if old.model != new.model {
                 switcher.select(new.model.id)
+            }
+            if old.history.enabled != new.history.enabled {
+                history.setEnabled(new.history.enabled)
+                Log.info("history: \(new.history.enabled ? "keeping the last \(TranscriptHistory.limit)" : "off; last transcript kept in memory only")")
+            }
+            if old.history.pasteLastHotkey != new.history.pasteLastHotkey {
+                pasteLast.apply(new.history.pasteLastHotkey)
             }
             if old.language != new.language {
                 // Read per dictation by dictionaryContext.

@@ -5,7 +5,7 @@ import AppKit
 /// (since we run as `.accessory` — no dock icon, no main window).
 ///
 /// The menu has named slots, top to bottom: `statusLine`, `modelLine`,
-/// `grantPermissionsItem`, `settingsItem`, `checkForUpdatesItem`, `quitItem`. Features update a slot
+/// `grantPermissionsItem`, `recentItem`, `settingsItem`, `checkForUpdatesItem`, `quitItem`. Features update a slot
 /// rather than rebuilding the menu.
 @MainActor
 final class MenuBarController {
@@ -21,6 +21,10 @@ final class MenuBarController {
     let grantPermissionsItem: NSMenuItem
     /// What `grantPermissionsItem` does; set by `OnboardingWindow`.
     var onGrantPermissions: (() -> Void)?
+    /// Slot: the Recent submenu, recent transcripts to copy.
+    let recentItem: NSMenuItem
+    /// What `recentItem` lists and does; set up by the daemon.
+    let recent = RecentMenu()
     /// Slot: opens the Settings window (#41) through `onOpenSettings`.
     let settingsItem: NSMenuItem
     /// Called by Settings…; set by the daemon, which owns the window.
@@ -62,6 +66,10 @@ final class MenuBarController {
         menu.addItem(grantPermissionsItem)
 
         menu.addItem(.separator())
+
+        recentItem = NSMenuItem(title: "Recent", action: nil, keyEquivalent: "")
+        recentItem.submenu = recent.menu
+        menu.addItem(recentItem)
 
         settingsItem = NSMenuItem(title: "Settings…", action: #selector(settingsClicked), keyEquivalent: ",")
         menu.addItem(settingsItem)
