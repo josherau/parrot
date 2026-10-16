@@ -36,6 +36,10 @@ package enum Paths {
     /// startup by `DictionaryMigration`.
     static var legacyDictionaryFile: URL { config.appendingPathComponent("dictionary.json") }
 
+    /// `history.json` in `appSupport`: the last few transcripts, text only,
+    /// 0600, for the Recent menu and Paste Last. Written by `TranscriptHistory`.
+    static var historyFile: URL { appSupport.appendingPathComponent("history.json") }
+
     /// The app's stdout.
     static var daemonOutLog: URL { logs.appendingPathComponent("parrot.out.log") }
 

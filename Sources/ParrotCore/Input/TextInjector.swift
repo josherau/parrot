@@ -64,6 +64,13 @@ final class TextInjector {
         }
     }
 
+    /// Pastes `text` over the clipboard whatever the mode: Paste Last, which
+    /// the user asked to paste.
+    func paste(_ text: String) {
+        guard !text.isEmpty else { return }
+        clipboard.paste(text)
+    }
+
     /// Leaves `text` on the clipboard for the user to paste.
     func copyToClipboard(_ text: String) {
         guard !text.isEmpty else { return }

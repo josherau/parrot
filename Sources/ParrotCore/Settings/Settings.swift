@@ -17,6 +17,7 @@ struct Settings: Codable, Equatable {
     var stats = StatsSettings()
     var onboarding = OnboardingSettings()
     var live = LiveSettings()
+    var history = HistorySettings()
 
     init() {}
 
@@ -30,5 +31,6 @@ struct Settings: Codable, Equatable {
         stats = try c.decodeIfPresent(StatsSettings.self, forKey: .stats) ?? StatsSettings()
         onboarding = try c.decodeIfPresent(OnboardingSettings.self, forKey: .onboarding) ?? OnboardingSettings()
         live = try c.decodeIfPresent(LiveSettings.self, forKey: .live) ?? LiveSettings()
+        history = try c.decodeIfPresent(HistorySettings.self, forKey: .history) ?? HistorySettings()
     }
 }

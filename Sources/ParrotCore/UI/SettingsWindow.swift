@@ -7,10 +7,12 @@ import SwiftUI
 @MainActor
 final class SettingsWindow {
     private let store: SettingsStore
+    private let onClearHistory: () -> Void
     private var window: NSWindow?
 
-    init(store: SettingsStore) {
+    init(store: SettingsStore, onClearHistory: @escaping () -> Void = {}) {
         self.store = store
+        self.onClearHistory = onClearHistory
     }
 
     func show() {
@@ -33,7 +35,7 @@ final class SettingsWindow {
         // The header inside says it; the title still names the window in
         // Mission Control and the window switcher.
         window.titleVisibility = .hidden
-        window.contentView = NSHostingView(rootView: SettingsView(store: store))
+        window.contentView = NSHostingView(rootView: SettingsView(store: store, onClearHistory: onClearHistory))
         window.isReleasedWhenClosed = false
         window.center()
         return window
@@ -51,6 +53,7 @@ final class SettingsWindow {
 /// carry the style, as in the onboarding window.
 struct SettingsView: View {
     @ObservedObject var store: SettingsStore
+    var onClearHistory: () -> Void = {}
 
     var body: some View {
         ScrollView {
@@ -75,6 +78,8 @@ struct SettingsView: View {
                 }
                 Divider()
                 TranscriptionSection(store: store)
+                Divider()
+                HistorySection(store: store, onClear: onClearHistory)
             }
             .padding(.horizontal, 32)
             .padding(.top, 36)
