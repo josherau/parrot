@@ -151,7 +151,9 @@ public enum Daemon {
             observers: observers,
             dumpWav: options.dumpWav,
             delivery: TextDelivery(mode: options.injectMode),
-            context: dictionaryContext
+            context: dictionaryContext,
+            // Read at each press, so the setting applies to the next dictation.
+            live: { settings.current.live.enabled ? LiveTranscription.Options() : nil }
         )
         switcher.controller = controller
 
@@ -171,6 +173,9 @@ public enum Daemon {
             }
             if old.model != new.model {
                 switcher.select(new.model.id)
+            }
+            if old.live != new.live {
+                Log.info("transcribe while recording: \(new.live.enabled ? "on" : "off"); applies at next press")
             }
             if old.language != new.language {
                 // Read per dictation by dictionaryContext.

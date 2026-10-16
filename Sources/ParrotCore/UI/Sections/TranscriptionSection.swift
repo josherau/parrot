@@ -53,6 +53,20 @@ struct TranscriptionSection: View {
 
             languagePicker
 
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Transcribe while recording")
+                    caption("Long dictations come back faster, most of all with larger models.")
+                }
+                Spacer()
+                Toggle("Transcribe while recording", isOn: Binding(
+                    get: { store.current.live.enabled },
+                    set: { on in store.update { $0.live.enabled = on } }
+                ))
+                .toggleStyle(.switch)
+                .labelsHidden()
+            }
+
             PillRow("Dictionary") {
                 Button("Open Dictionary File") { Self.openDictionary() }
                     .buttonStyle(.pill)

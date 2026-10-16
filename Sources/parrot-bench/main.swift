@@ -5,12 +5,13 @@ import ParrotCore
 // Developer benchmarks for Parrot. Not part of Parrot.app.
 
 /// `parrot-bench transcription <folder>` times the model;
+/// `parrot-bench live <folder>` compares transcribing while recording;
 /// `parrot-bench capture` times the microphone.
 struct Bench: ParsableCommand {
     static let configuration = CommandConfiguration(
         commandName: "parrot-bench",
         abstract: "Measure latency: the model over recordings, or microphone capture.",
-        subcommands: [BenchTranscription.self, BenchCapture.self],
+        subcommands: [BenchTranscription.self, BenchLive.self, BenchCapture.self],
         defaultSubcommand: BenchTranscription.self
     )
 }
@@ -124,6 +125,61 @@ struct BenchTranscription: ParsableCommand {
                 trailPad: trailPad,
                 language: language == "auto" ? nil : language,
                 spoken: spoken?.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) } ?? []
+            ))
+        }
+    }
+}
+
+/// Release→text with and without transcribing while recording.
+struct BenchLive: ParsableCommand {
+    static let configuration = CommandConfiguration(
+        commandName: "live",
+        abstract: "Compare release→text with and without transcribing while recording.",
+        discussion: """
+            Replays every .wav file in the folder at the speed it was spoken, \
+            transcribing finished parts while it plays, and times the rest \
+            after the end, against transcribing the whole file after the end. \
+            A .txt file beside a recording adds the word error rate of each. \
+            Prints timings and counts, never transcript text.
+            """
+    )
+
+    @Argument(help: "Folder of .wav recordings.") var folder: String
+
+    @Option(name: .long, help: "Runs per file, each way.") var runs: Int = 3
+
+    @Option(name: .long, help: "Model id to use. Defaults to the recommended model.") var model: String?
+
+    @Flag(name: .long, help: "Run without a prompt.") var noPrompt: Bool = false
+
+    @Option(name: .long, help: "Shortest piece transcribed while recording, in seconds.") var minPiece: Double = 6
+
+    @Option(name: .long, help: "Longest piece before a cut without a pause, in seconds.") var maxPiece: Double = 20
+
+    @Option(name: .long, help: "Shortest pause to cut in, in seconds.") var pause: Double = 0.3
+
+    @Option(name: .long, help: "Words of the previous piece added to the prompt.") var contextWords: Int = 0
+
+    @Option(name: .long, help: "Replay speed: 1 is real time.") var speed: Double = 1
+
+    func validate() throws {
+        guard minPiece > 0, maxPiece >= minPiece + 1, maxPiece <= 28 else {
+            throw ValidationError("expected 0 < --min-piece, --min-piece + 1 ≤ --max-piece ≤ 28")
+        }
+    }
+
+    func run() throws {
+        try exiting {
+            try LiveBench.run(LiveBenchOptions(
+                folder: folder,
+                runs: runs,
+                model: model,
+                noPrompt: noPrompt,
+                live: LiveTranscription.Options(
+                    cutter: PauseCutter.Options(minSeconds: minPiece, maxSeconds: maxPiece, pauseSeconds: pause),
+                    contextWords: contextWords
+                ),
+                speed: speed
             ))
         }
     }

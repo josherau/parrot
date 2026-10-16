@@ -33,4 +33,13 @@ package struct TranscriberTimings: Equatable, Sendable {
     package var tokens = 0
     /// Temperature fallbacks: decodes thrown away and retried.
     package var fallbacks = 0
+    /// Pieces transcribed while recording, before the release; zero when
+    /// the whole capture was transcribed after it. The other fields then
+    /// describe only the tail transcribed after the release.
+    package var liveChunks = 0
+    /// Seconds of audio those pieces covered.
+    package var liveSeconds: TimeInterval = 0
+    /// Seconds the release waited for a piece still being transcribed;
+    /// included in `total`.
+    package var liveWait: TimeInterval = 0
 }

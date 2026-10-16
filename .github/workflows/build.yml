@@ -1,0 +1,91 @@
+# Builds and tests Parrot on every push to a branch other than master, and
+# on demand. No secrets: the app is ad-hoc signed, so it is for testing a
+# branch, not for distribution (release.yml signs and notarizes tags).
+#
+# The artifact, Parrot-<branch>-<sha>.zip, holds Parrot.app. An ad-hoc
+# signature is a new identity on every build: macOS asks for Microphone and
+# Accessibility again, and Gatekeeper wants a right-click ▸ Open (or
+# `xattr -dr com.apple.quarantine Parrot.app`) the first time.
+name: build
+
+on:
+  push:
+    branches-ignore:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: test, and build an ad-hoc signed Parrot.app
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # build-app.sh takes its version from the latest tag.
+          fetch-depth: 0
+
+      - name: select Xcode
+        run: sudo xcode-select -s "$(ls -d /Applications/Xcode_26*.app /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -1)"
+
+      - name: swift version
+        id: swift
+        run: |
+          swift --version
+          # Part of the cache key: .build from another compiler won't link.
+          echo "hash=$(swift --version 2>&1 | shasum | cut -c1-12)" >> "$GITHUB_OUTPUT"
+
+      - name: cache SwiftPM
+        uses: actions/cache@v4
+        with:
+          path: |
+            .build
+            ~/Library/Caches/org.swift.swiftpm
+          key: spm-build-${{ runner.os }}-${{ steps.swift.outputs.hash }}-${{ hashFiles('Package.resolved') }}
+          restore-keys: spm-build-${{ runner.os }}-${{ steps.swift.outputs.hash }}-
+
+      - name: test
+        run: swift test
+
+      - name: build Parrot.app
+        env:
+          PARROT_SIGN_IDENTITY: "-"
+          PARROT_TIMESTAMP: none
+        run: scripts/build-app.sh
+
+      - name: package
+        id: package
+        run: |
+          set -eu
+          NAME="Parrot-$(echo "$GITHUB_REF_NAME" | tr '/' '-')-${GITHUB_SHA::7}"
+          ditto -c -k --keepParent build/Parrot.app "$NAME.zip"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.package.outputs.name }}
+          path: ${{ steps.package.outputs.name }}.zip
+          retention-days: 14
+
+      # parrot-bench, to time a branch on a Mac with the models: unzip and
+      # run ./parrot-bench beside its Sparkle.framework.
+      - name: build parrot-bench
+        run: |
+          set -eu
+          swift build -c release --arch arm64 --product parrot-bench
+          BIN="$(swift build -c release --arch arm64 --show-bin-path)"
+          mkdir -p bench
+          cp "$BIN/parrot-bench" bench/
+          ditto "$BIN/Sparkle.framework" bench/Sparkle.framework
+          for bundle in "$BIN"/*.bundle; do [ -e "$bundle" ] && ditto "$bundle" "bench/$(basename "$bundle")"; done
+          ditto -c -k bench parrot-bench.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: parrot-bench-${{ steps.package.outputs.name }}
+          path: parrot-bench.zip
+          retention-days: 14

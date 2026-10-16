@@ -110,6 +110,15 @@ package final class CaptureBuffer: @unchecked Sendable {
         samples.append(contentsOf: chunk)
     }
 
+    /// A copy of the samples captured so far from `start` on, while the
+    /// recording runs: transcription of finished audio during it.
+    func snapshot(from start: Int) -> [Float] {
+        lock.lock()
+        defer { lock.unlock() }
+        guard start < samples.count else { return [] }
+        return Array(samples[max(0, start)...])
+    }
+
     func recordConversionFailure() {
         lock.lock()
         defer { lock.unlock() }

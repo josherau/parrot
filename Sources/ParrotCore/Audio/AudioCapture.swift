@@ -101,6 +101,13 @@ package final class AudioCapture {
         }
     }
 
+    /// Reads the 16 kHz samples captured so far from an index on, without
+    /// stopping; safe from any thread. For `LiveTranscription`.
+    package var peek: @Sendable (Int) -> [Float] {
+        let buffer = self.buffer
+        return { buffer.snapshot(from: $0) }
+    }
+
     /// Stop recording, stop the input, and return the captured samples.
     /// Throws `CaptureError.routeChanged` instead of returning a partial
     /// capture if the input route changed mid-recording.

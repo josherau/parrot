@@ -9,6 +9,11 @@ package actor WhisperKitTranscriber: Transcriber {
     private var pipeline: WhisperKit?
     /// Set by `unload`: this transcriber was replaced and loads nothing more.
     private var retired = false
+    /// One transcription at a time. The actor alone doesn't ensure it: a
+    /// call suspends inside WhisperKit, and another (a piece transcribed
+    /// while recording, or an earlier dictation's) would interleave with it.
+    private var busy = false
+    private var waiting: [CheckedContinuation<Void, Never>] = []
 
     package init(model: TranscriptionModel, tuning: WhisperTuning = .standard) {
         self.modelID = model.id
@@ -75,6 +80,29 @@ package actor WhisperKitTranscriber: Transcriber {
     /// word list, and a list given as a prompt scores no better than nothing
     /// (#23).
     package func transcribe(_ audio: [Float], context: TranscriptionContext) async throws -> Transcript {
+        await acquire()
+        defer { release() }
+        return try await transcribeAlone(audio, context: context)
+    }
+
+    private func acquire() async {
+        guard busy else {
+            busy = true
+            return
+        }
+        await withCheckedContinuation { waiting.append($0) }
+    }
+
+    /// Hands the turn to the next waiting call, or frees it.
+    private func release() {
+        if waiting.isEmpty {
+            busy = false
+        } else {
+            waiting.removeFirst().resume()
+        }
+    }
+
+    private func transcribeAlone(_ audio: [Float], context: TranscriptionContext) async throws -> Transcript {
         if pipeline == nil { try await warmUp() }
         guard let pipeline else { throw TranscriberError.notLoaded }
 

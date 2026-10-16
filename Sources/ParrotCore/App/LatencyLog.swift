@@ -47,8 +47,14 @@ final class LatencyLog: DictationObserver {
             "deliver \(ms(result.delivery)) ms",
         ]
         if let t = result.transcriber {
-            if t.audioSeconds + 0.05 < result.captureDuration {
+            if t.liveChunks == 0, t.audioSeconds + 0.05 < result.captureDuration {
                 parts.append(String(format: "trimmed to %.1f s", t.audioSeconds))
+            }
+            if t.liveChunks > 0 {
+                parts.append(String(
+                    format: "live %d piece%@ %.1f s · waited %@ ms · tail %.1f s",
+                    t.liveChunks, t.liveChunks == 1 ? "" : "s", t.liveSeconds, ms(t.liveWait), t.audioSeconds
+                ))
             }
             if let language = t.language { parts.append("lang \(language)") }
             parts += [

@@ -17,6 +17,10 @@ import Foundation
 ///   `DictationError.noAudio`.
 /// - A transcript that does not reach the cursor (a secure field, or focus
 ///   moved since the press) fails with its `DeliveryError`.
+/// - With `live` options, a `LiveTranscription` starts at the press and
+///   transcribes finished parts of the recording; the release transcribes
+///   only the rest. If it transcribed nothing (a short dictation) or failed,
+///   the release transcribes the whole capture, as without it.
 @MainActor
 final class DictationController {
     enum State: Equatable {
@@ -42,6 +46,11 @@ final class DictationController {
     private var inFlight = 0
     /// What had focus when the current recording started (#38).
     private var focusAtStart: FocusSnapshot?
+    /// Options for transcribing while recording, asked at each press; nil
+    /// for off.
+    private let live: @MainActor () -> LiveTranscription.Options?
+    /// The current recording's live transcription, if on.
+    private var liveSession: LiveTranscription?
 
     init(
         capture: AudioCapture,
@@ -50,7 +59,8 @@ final class DictationController {
         observers: [DictationObserver],
         dumpWav: Bool = false,
         delivery: TextDelivery,
-        context: @escaping @MainActor () -> TranscriptionContext = { TranscriptionContext() }
+        context: @escaping @MainActor () -> TranscriptionContext = { TranscriptionContext() },
+        live: @escaping @MainActor () -> LiveTranscription.Options? = { nil }
     ) {
         self.capture = capture
         self.transcriber = transcriber
@@ -59,6 +69,7 @@ final class DictationController {
         self.dumpWav = dumpWav
         self.delivery = delivery
         self.context = context
+        self.live = live
     }
 
     /// Uses `transcriber` from the next release on. A transcription already
@@ -84,6 +95,7 @@ final class DictationController {
             return
         }
         focusAtStart = FocusSnapshot.capture()
+        startLive()
         Log.info("● recording")
         state = .recording
         observers.forEach { $0.dictationStarted() }
@@ -98,6 +110,7 @@ final class DictationController {
             // The route changed mid-recording: no partial capture is delivered.
             Log.error("capture failed: \(error)")
             focusAtStart = nil
+            cancelLive()
             state = inFlight > 0 ? .transcribing : .idle
             observers.forEach { $0.dictationFailed(error) }
             return
@@ -106,6 +119,8 @@ final class DictationController {
         let pressToFirstSample = capture.lastStats?.firstSampleDelay
         let focus = focusAtStart
         focusAtStart = nil
+        let liveSession = self.liveSession
+        self.liveSession = nil
         state = .transcribing
         observers.forEach { $0.dictationTranscribing() }
 
@@ -116,6 +131,7 @@ final class DictationController {
         }
 
         guard !samples.isEmpty else {
+            if let liveSession { Task { await liveSession.cancel() } }
             settle()
             observers.forEach { $0.dictationFailed(DictationError.noAudio) }
             return
@@ -128,7 +144,12 @@ final class DictationController {
             let started = CFAbsoluteTimeGetCurrent()
             do {
                 // The transcriber is an actor; this await runs off the main actor.
-                let raw = try await transcriber.transcribe(samples, context: context)
+                let raw: Transcript
+                if let live = try await liveSession?.finish(samples) {
+                    raw = live
+                } else {
+                    raw = try await transcriber.transcribe(samples, context: context)
+                }
                 let transcribed = CFAbsoluteTimeGetCurrent()
                 let elapsed = transcribed - started
                 // Never log the transcript itself: the agent's log is a file on disk.
@@ -170,9 +191,31 @@ final class DictationController {
         guard state == .recording else { return }
         capture.stop()
         focusAtStart = nil
+        cancelLive()
         state = inFlight > 0 ? .transcribing : .idle
         Log.info("○ discarded")
         observers.forEach { $0.dictationFailed(DictationError.cancelled) }
+    }
+
+    /// Starts transcribing the recording that just started, if on.
+    private func startLive() {
+        cancelLive()
+        guard let options = live() else { return }
+        let transcriber = self.transcriber
+        let session = LiveTranscription(
+            context: context(),
+            options: options,
+            peek: capture.peek,
+            transcribe: { audio, context in try await transcriber.transcribe(audio, context: context) }
+        )
+        liveSession = session
+        Task { await session.start() }
+    }
+
+    private func cancelLive() {
+        guard let session = liveSession else { return }
+        liveSession = nil
+        Task { await session.cancel() }
     }
 
     /// After a transcription ends, return to idle unless a newer recording

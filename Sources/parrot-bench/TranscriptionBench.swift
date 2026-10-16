@@ -284,7 +284,7 @@ enum TranscriptionBench {
     }
 
     /// Runs `body` to completion from synchronous command code.
-    private static func blocking<T>(_ body: @escaping @Sendable () async throws -> T) throws -> T {
+    static func blocking<T>(_ body: @escaping @Sendable () async throws -> T) throws -> T {
         let sem = DispatchSemaphore(value: 0)
         nonisolated(unsafe) var result: Result<T, Error>?
         Task.detached {
